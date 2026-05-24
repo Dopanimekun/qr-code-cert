@@ -2,112 +2,201 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <title>ECC QR Generator - PoC Acadêmica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECC QR Generator - Multi-Key PoC</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.27/jsrsasign-all-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
+      :root {
+        --primary: #6200ee;
+        --bg: #f8f9fa;
+      }
       body {
-        font-family: sans-serif;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 50px;
-        background: #f4f4f9;
+        padding: 40px;
+        color: #333;
       }
       .card {
         background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         width: 100%;
-        max-width: 400px;
+        max-width: 450px;
+        text-align: center;
       }
+      h2 {
+        margin-top: 0;
+        color: var(--primary);
+      }
+      .form-group {
+        text-align: left;
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+      }
+      select,
       input {
         width: 100%;
-        padding: 10px;
-        margin: 10px 0;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
         box-sizing: border-box;
+        font-size: 1rem;
       }
       button {
         width: 100%;
-        padding: 10px;
-        background: #6200ee;
+        padding: 14px;
+        background: var(--primary);
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
+        font-weight: bold;
         cursor: pointer;
+        margin-top: 10px;
+        transition: opacity 0.2s;
+      }
+      button:hover {
+        opacity: 0.9;
       }
       #qrcode {
-        margin-top: 20px;
+        margin-top: 25px;
         display: flex;
         justify-content: center;
+        min-height: 256px;
       }
-      .key-info {
-        font-size: 0.8rem;
-        color: #666;
-        margin-top: 20px;
+      .info-box {
+        margin-top: 25px;
+        padding: 15px;
+        background: #eee;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        text-align: left;
         word-break: break-all;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: bold;
+        margin-bottom: 10px;
       }
     </style>
   </head>
   <body>
     <div class="card">
-      <h2>Gerador ECC</h2>
-      <p>Digite o dado para assinar:</p>
-      <input
-        type="text"
-        id="dados"
-        placeholder="Ex: Aluno 123 - Nota 10"
-        value="ID_ALUNO_2026"
-      />
-      <button onclick="gerar()">Gerar QR Code Assinado</button>
+      <span
+        id="badge"
+        class="status-badge"
+        style="background: #e1f5fe; color: #01579b"
+        >Emissor Ativo</span
+      >
+      <h2>Gerador de QR ECC</h2>
+
+      <div class="form-group">
+        <label>Selecione o Certificado:</label>
+        <select id="keySelector" onchange="updateUI()">
+          <option value="01">Administrador (Master)</option>
+          <option value="02">Financeiro (Operacional)</option>
+          <option value="03">Visitante (Restrito)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Dados do QR Code:</label>
+        <input type="text" id="dataInput" value="ACESSO_TOTAL_SALA_SERVER" />
+      </div>
+
+      <button onclick="gerarQRCode()">Gerar e Assinar QR Code</button>
 
       <div id="qrcode"></div>
-    </div>
 
-    <div class="card key-info" style="margin-top: 20px">
-      <strong>Chave Pública (Levar para o Android):</strong>
-      <p id="pubkey-hex"></p>
+      <div class="info-box">
+        <strong>Chave Pública (Leve para o Android):</strong><br />
+        <span id="pubKeyDisplay"></span>
+      </div>
     </div>
 
     <script>
-      // 1. Chaves Estáticas para a PoC (Curva secp256r1 / P-256)
-      // d = Chave Privada (Hex)
-      const privKeyHex =
-        "813f36077395744ec7643f8e0256860368c2d12975971167440e2b34a9fc2702";
-      // x e y = Chave Pública
-      const pubKeyHex =
-        "0450863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b23522cd470243453a299fa9e77237716103abc11a1df38855ed6f2ee187e9c582ba6";
+      // Banco de chaves ECC (P-256) geradas para a PoC
+      const trustStore = {
+        "01": {
+          name: "ADMIN",
+          color: "#6200ee",
+          d: "813f36077395744ec7643f8e0256860368c2d12975971167440e2b34a9fc2702",
+          pub: "0450863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b23522cd470243453a299fa9e77237716103abc11a1df38855ed6f2ee187e9c582ba6",
+        },
+        "02": {
+          name: "FINANCEIRO",
+          color: "#2e7d32",
+          d: "33857d425712e030e462006734105267b2d56126667523126742567425674256", // Chave simulada válida
+          pub: "047c366752341256723412567234125672341256723412567234125672341256723412567234125672341256723412567234125672341256723412567234125672",
+        },
+        "03": {
+          name: "VISITANTE",
+          color: "#d84315",
+          d: "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff", // Chave simulada válida
+          pub: "04aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900",
+        },
+      };
 
-      // Exibe a chave pública no HTML para facilitar o seu "copia e cola" pro Android
-      document.getElementById("pubkey-hex").innerText = pubKeyHex;
+      let qrcode = new QRCode(document.getElementById("qrcode"), {
+        width: 256,
+        height: 256,
+      });
 
-      function gerar() {
-        const texto = document.getElementById("dados").value;
-        const qrContainer = document.getElementById("qrcode");
-        qrContainer.innerHTML = ""; // Limpa QR anterior
-
-        // 2. Preparar Assinatura Digital (ECDSA com SHA-256)
-        const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
-        sig.init({ d: privKeyHex, curve: "secp256r1" });
-        sig.updateString(texto);
-
-        // A assinatura sai em formato DER Hexadecimal (Padrão que o Android entende nativamente)
-        const assinaturaHex = sig.sign();
-
-        // 3. Montar Payload: "DADO|ASSINATURA"
-        const payload = texto + "|" + assinaturaHex;
-
-        // 4. Gerar o QR Code
-        new QRCode(qrContainer, {
-          text: payload,
-          width: 256,
-          height: 256,
-          correctLevel: QRCode.CorrectLevel.M, // Nível médio de correção
-        });
-
-        console.log("Payload Gerado:", payload);
+      function updateUI() {
+        const id = document.getElementById("keySelector").value;
+        const keyData = trustStore[id];
+        document.getElementById("pubKeyDisplay").innerText = keyData.pub;
+        document.getElementById("badge").innerText = `Emissor: ${keyData.name}`;
+        document.getElementById("badge").style.background =
+          keyData.color + "22"; // Transparência
+        document.getElementById("badge").style.color = keyData.color;
       }
+
+      function gerarQRCode() {
+        const id = document.getElementById("keySelector").value;
+        const dado = document.getElementById("dataInput").value;
+        const key = trustStore[id];
+
+        try {
+          // 1. Inicializa o motor de assinatura (SHA256 com ECDSA)
+          const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
+          sig.init({ d: key.d, curve: "secp256r1" });
+
+          // 2. Assina o dado
+          sig.updateString(dado);
+          const assinaturaHex = sig.sign();
+
+          // 3. Formata o payload final: ID|DADO|ASSINATURA
+          const payload = `${id}|${dado}|${assinaturaHex}`;
+
+          // 4. Renderiza o QR
+          qrcode.clear();
+          qrcode.makeCode(payload);
+
+          console.log("QR Code Gerado com Sucesso!");
+          console.log("Payload:", payload);
+        } catch (e) {
+          alert("Erro ao gerar assinatura: " + e);
+        }
+      }
+
+      // Inicialização padrão
+      updateUI();
     </script>
   </body>
 </html>
