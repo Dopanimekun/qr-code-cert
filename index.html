@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ECC QR Generator - PoC Acadêmica</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.27/jsrsasign-all-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 50px;
+        background: #f4f4f9;
+      }
+      .card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #6200ee;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #qrcode {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .key-info {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 20px;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Gerador ECC</h2>
+      <p>Digite o dado para assinar:</p>
+      <input
+        type="text"
+        id="dados"
+        placeholder="Ex: Aluno 123 - Nota 10"
+        value="ID_ALUNO_2026"
+      />
+      <button onclick="gerar()">Gerar QR Code Assinado</button>
+
+      <div id="qrcode"></div>
+    </div>
+
+    <div class="card key-info" style="margin-top: 20px">
+      <strong>Chave Pública (Levar para o Android):</strong>
+      <p id="pubkey-hex"></p>
+    </div>
+
+    <script>
+      // 1. Chaves Estáticas para a PoC (Curva secp256r1 / P-256)
+      // d = Chave Privada (Hex)
+      const privKeyHex =
+        "813f36077395744ec7643f8e0256860368c2d12975971167440e2b34a9fc2702";
+      // x e y = Chave Pública
+      const pubKeyHex =
+        "0450863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b23522cd470243453a299fa9e77237716103abc11a1df38855ed6f2ee187e9c582ba6";
+
+      // Exibe a chave pública no HTML para facilitar o seu "copia e cola" pro Android
+      document.getElementById("pubkey-hex").innerText = pubKeyHex;
+
+      function gerar() {
+        const texto = document.getElementById("dados").value;
+        const qrContainer = document.getElementById("qrcode");
+        qrContainer.innerHTML = ""; // Limpa QR anterior
+
+        // 2. Preparar Assinatura Digital (ECDSA com SHA-256)
+        const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
+        sig.init({ d: privKeyHex, curve: "secp256r1" });
+        sig.updateString(texto);
+
+        // A assinatura sai em formato DER Hexadecimal (Padrão que o Android entende nativamente)
+        const assinaturaHex = sig.sign();
+
+        // 3. Montar Payload: "DADO|ASSINATURA"
+        const payload = texto + "|" + assinaturaHex;
+
+        // 4. Gerar o QR Code
+        new QRCode(qrContainer, {
+          text: payload,
+          width: 256,
+          height: 256,
+          correctLevel: QRCode.CorrectLevel.M, // Nível médio de correção
+        });
+
+        console.log("Payload Gerado:", payload);
+      }
+    </script>
+  </body>
+</html>
