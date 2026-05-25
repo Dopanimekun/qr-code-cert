@@ -1,202 +1,852 @@
 <!doctype html>
 <html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ECC QR Generator - Multi-Key PoC</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECDSA QR — Emissor Seguro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.27/jsrsasign-all-min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --green: #029c28;
+      --green-dim: #00c832;
+      --green-glow: rgba(0, 255, 65, 0.15);
+      --green-glow-strong: rgba(0, 255, 65, 0.35);
+      --bg: #f2eded;
+      --bg2: #020f02;
+      --panel: #040d04;
+      --panel2: #071007;
+      --border: #0a2a0a;
+      --border-bright: #1a4a1a;
+      --text: #c8e6c9;
+      --text-dim: #777575;
+      --red: #ff3333;
+      --amber: #ffaa00;
+      --cyan: #00ffff;
+      --purple: #bf00ff;
+    }
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.27/jsrsasign-all-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    <style>
-      :root {
-        --primary: #6200ee;
-        --bg: #f8f9fa;
-      }
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: var(--bg);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 40px;
-        color: #333;
-      }
-      .card {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 450px;
-        text-align: center;
-      }
-      h2 {
-        margin-top: 0;
-        color: var(--primary);
-      }
-      .form-group {
-        text-align: left;
-        margin-bottom: 15px;
-      }
-      label {
-        display: block;
-        font-weight: bold;
-        margin-bottom: 5px;
-        font-size: 0.9rem;
-      }
-      select,
-      input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        box-sizing: border-box;
-        font-size: 1rem;
-      }
-      button {
-        width: 100%;
-        padding: 14px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-weight: bold;
-        cursor: pointer;
-        margin-top: 10px;
-        transition: opacity 0.2s;
-      }
-      button:hover {
-        opacity: 0.9;
-      }
-      #qrcode {
-        margin-top: 25px;
-        display: flex;
-        justify-content: center;
-        min-height: 256px;
-      }
-      .info-box {
-        margin-top: 25px;
-        padding: 15px;
-        background: #eee;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        text-align: left;
-        word-break: break-all;
-      }
-      .status-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        font-weight: bold;
-        margin-bottom: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <span
-        id="badge"
-        class="status-badge"
-        style="background: #e1f5fe; color: #01579b"
-        >Emissor Ativo</span
-      >
-      <h2>Gerador de QR ECC</h2>
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
 
-      <div class="form-group">
-        <label>Selecione o Certificado:</label>
-        <select id="keySelector" onchange="updateUI()">
-          <option value="01">Administrador (Master)</option>
-          <option value="02">Financeiro (Operacional)</option>
-          <option value="03">Visitante (Restrito)</option>
-        </select>
+    /* ── Scanlines overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Grid background ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,65,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,65,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      border-bottom: 1px solid var(--border-bright);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #020f02 0%, transparent 100%);
+    }
+
+    .logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: var(--green);
+      text-shadow: 0 0 20px var(--green), 0 0 40px rgba(0,255,65,0.3);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .logo span { color: var(--text-dim); font-weight: 400; }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ── Main layout ── */
+    main {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 57px);
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      border-right: 1px solid var(--border-bright);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .section-label {
+      font-size: 0.65rem;
+      letter-spacing: 4px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-bright);
+    }
+
+    .cert-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .cert-btn {
+      position: relative;
+      padding: 14px 8px;
+      background: var(--panel);
+      border: 1px solid var(--border-bright);
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      cursor: crosshair;
+      transition: all 0.15s;
+      text-align: center;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+
+    .cert-btn:hover {
+      border-color: var(--green-dim);
+      color: var(--green);
+      background: var(--green-glow);
+    }
+
+    .cert-btn.active {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-glow);
+      box-shadow: inset 0 0 20px var(--green-glow), 0 0 10px var(--green-glow);
+    }
+
+    .cert-btn.active::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: -1px; right: -1px; bottom: -1px;
+      border: 1px solid var(--green);
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+      animation: borderGlow 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes borderGlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .cert-id {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: inherit;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .cert-role { font-size: 0.6rem; letter-spacing: 2px; }
+
+    /* ── Input field ── */
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper::before {
+      content: '>';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 14px 14px 36px;
+      background: var(--panel);
+      border: 1px solid var(--border-bright);
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      outline: none;
+      transition: all 0.2s;
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 20px var(--green-glow), inset 0 0 10px var(--green-glow);
+    }
+
+    input[type="text"]::placeholder { color: var(--text-dim); }
+
+    /* ── Generate button ── */
+    .btn-generate {
+      position: relative;
+      width: 100%;
+      padding: 18px;
+      background: transparent;
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      cursor: crosshair;
+      transition: all 0.2s;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      overflow: hidden;
+    }
+
+    .btn-generate::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--green);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: -1;
+    }
+
+    .btn-generate:hover::before { transform: translateX(0); }
+    .btn-generate:hover { color: var(--bg); }
+
+    .btn-generate.loading {
+      animation: btnPulse 0.5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes btnPulse {
+      from { box-shadow: 0 0 10px var(--green-glow); }
+      to { box-shadow: 0 0 30px var(--green-glow-strong); }
+    }
+
+    /* ── Install button ── */
+    .btn-install {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-decoration: none;
+      transition: all 0.2s;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+
+    .btn-install:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0,255,255,0.15);
+    }
+
+    .btn-install svg { width: 16px; height: 16px; }
+
+    /* ── Cert info ── */
+    .cert-info {
+      background: var(--panel);
+      border: 1px solid var(--border-bright);
+      padding: 16px;
+      font-size: 0.7rem;
+      line-height: 1.8;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    }
+
+    .cert-info-row { display: flex; gap: 8px; }
+    .cert-info-key { color: var(--text-dim); min-width: 60px; }
+    .cert-info-val { color: var(--green); word-break: break-all; }
+
+    /* ── Right panel ── */
+    .right-panel {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    /* ── QR frame ── */
+    .qr-frame {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-frame::before, .qr-frame::after {
+      content: '';
+      position: absolute;
+      width: 24px; height: 24px;
+      border-color: var(--green);
+      border-style: solid;
+    }
+
+    .qr-frame::before {
+      top: -2px; left: -2px;
+      border-width: 2px 0 0 2px;
+      box-shadow: -4px -4px 12px var(--green-glow);
+    }
+
+    .qr-frame::after {
+      bottom: -2px; right: -2px;
+      border-width: 0 2px 2px 0;
+      box-shadow: 4px 4px 12px var(--green-glow);
+    }
+
+    .qr-frame-inner {
+      position: absolute;
+      inset: 0;
+    }
+
+    .qr-frame-inner::before {
+      content: '';
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 24px; height: 24px;
+      border-top: 2px solid var(--green);
+      border-right: 2px solid var(--green);
+      box-shadow: 4px -4px 12px var(--green-glow);
+    }
+
+    .qr-frame-inner::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: -2px;
+      width: 24px; height: 24px;
+      border-bottom: 2px solid var(--green);
+      border-left: 2px solid var(--green);
+      box-shadow: -4px 4px 12px var(--green-glow);
+    }
+
+    #qrcode {
+      width: 256px;
+      height: 256px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      position: relative;
+      z-index: 1;
+    }
+
+    #qrcode canvas, #qrcode img {
+      display: block;
+    }
+
+    /* Scan line animation on QR */
+    .qr-scan {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      box-shadow: 0 0 10px var(--green);
+      opacity: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .qr-scan.active {
+      opacity: 1;
+      animation: scanLine 1.5s ease-in-out;
+    }
+
+    @keyframes scanLine {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    .qr-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+    }
+
+    .qr-placeholder-icon {
+      width: 80px; height: 80px;
+      border: 2px solid var(--border-bright);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 8px;
+    }
+
+    .qr-placeholder-icon span {
+      background: var(--border-bright);
+      display: block;
+    }
+
+    .qr-placeholder-icon span:nth-child(1),
+    .qr-placeholder-icon span:nth-child(3),
+    .qr-placeholder-icon span:nth-child(7),
+    .qr-placeholder-icon span:nth-child(9) {
+      background: var(--text-dim);
+    }
+
+    /* ── Signature display ── */
+    .sig-display {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border-bright);
+      padding: 16px;
+      font-size: 0.62rem;
+      letter-spacing: 1px;
+      line-height: 1.6;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+
+    .sig-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .sig-key { color: var(--text-dim); min-width: 70px; flex-shrink: 0; }
+    .sig-val { color: var(--green); word-break: break-all; font-size: 0.58rem; }
+    .sig-val.highlight { color: var(--amber); }
+
+    /* ── Status bar ── */
+    .status-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      border-top: 1px solid var(--border-bright);
+      background: var(--bg2);
+      padding: 8px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .status-left { display: flex; align-items: center; gap: 16px; }
+    .status-msg { color: var(--green); transition: color 0.3s; }
+    .status-msg.error { color: var(--red); }
+    .status-msg.warn { color: var(--amber); }
+
+    /* ── Typing animation for status ── */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px; height: 12px;
+      background: var(--green);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+
+    /* ── Glitch effect on title ── */
+    .glitch {
+      position: relative;
+    }
+
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glitch::before {
+      color: var(--cyan);
+      animation: glitch1 4s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+      transform: translateX(-2px);
+    }
+
+    .glitch::after {
+      color: var(--red);
+      animation: glitch2 4s infinite;
+      clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+      transform: translateX(2px);
+    }
+
+    @keyframes glitch1 {
+      0%, 90%, 100% { transform: translateX(-2px); opacity: 0; }
+      92% { transform: translateX(-4px) skewX(-5deg); opacity: 0.7; }
+      94% { transform: translateX(2px); opacity: 0.5; }
+      96% { transform: translateX(-2px); opacity: 0; }
+    }
+
+    @keyframes glitch2 {
+      0%, 90%, 100% { transform: translateX(2px); opacity: 0; }
+      93% { transform: translateX(4px) skewX(5deg); opacity: 0.7; }
+      95% { transform: translateX(-2px); opacity: 0.5; }
+      97% { transform: translateX(2px); opacity: 0; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; }
+      .left-panel { border-right: none; border-bottom: 1px solid var(--border-bright); padding: 24px; }
+      .right-panel { padding: 24px; }
+      header { padding: 12px 20px; }
+      .logo { font-size: 0.85rem; }
+      .header-status { gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo glitch" data-text="ECDSA//QR">ECDSA<span>//QR</span></div>
+    <div class="header-status">
+      <div class="pulse-dot"></div>
+      <span>SISTEMA ATIVO</span>
+      <span style="color: var(--border-bright)">|</span>
+      <span>P-256</span>
+      <span style="color: var(--border-bright)">|</span>
+      <span>SHA256withECDSA</span>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main>
+
+    <!-- LEFT: Controls -->
+    <div class="left-panel">
+
+      <!-- Cert selector -->
+      <div>
+        <div class="section-label">// seleção de certificado</div>
+        <div class="cert-grid">
+          <button class="cert-btn active" onclick="selectCert('01')" id="btn-01">
+            <span class="cert-id">01</span>
+            <span class="cert-role">ADMIN</span>
+          </button>
+          <button class="cert-btn" onclick="selectCert('02')" id="btn-02">
+            <span class="cert-id">02</span>
+            <span class="cert-role">FINANCEIRO</span>
+          </button>
+          <button class="cert-btn" onclick="selectCert('03')" id="btn-03">
+            <span class="cert-id">03</span>
+            <span class="cert-role">VISITANTE</span>
+          </button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Dados do QR Code:</label>
-        <input type="text" id="dataInput" value="ACESSO_TOTAL_SALA_SERVER" />
+      <!-- Cert info -->
+      <div>
+        <div class="section-label">// informações do certificado</div>
+        <div class="cert-info" id="certInfo">
+          <div class="cert-info-row">
+            <span class="cert-info-key">ID:</span>
+            <span class="cert-info-val" id="infoId">01</span>
+          </div>
+          <div class="cert-info-row">
+            <span class="cert-info-key">ROLE:</span>
+            <span class="cert-info-val" id="infoRole">ADMINISTRADOR MASTER</span>
+          </div>
+          <div class="cert-info-row">
+            <span class="cert-info-key">CURVA:</span>
+            <span class="cert-info-val">secp256r1 / P-256</span>
+          </div>
+          <div class="cert-info-row">
+            <span class="cert-info-key">ALG:</span>
+            <span class="cert-info-val">SHA256withECDSA</span>
+          </div>
+          <div class="cert-info-row">
+            <span class="cert-info-key">PUB:</span>
+            <span class="cert-info-val" id="infoPub" style="font-size:0.55rem"></span>
+          </div>
+        </div>
       </div>
 
-      <button onclick="gerarQRCode()">Gerar e Assinar QR Code</button>
-
-      <div id="qrcode"></div>
-
-      <div class="info-box">
-        <strong>Chave Pública (Leve para o Android):</strong><br />
-        <span id="pubKeyDisplay"></span>
+      <!-- Data input -->
+      <div>
+        <div class="section-label">// payload de acesso</div>
+        <div class="input-wrapper">
+          <input type="text" id="dataInput" value="ACESSO_TOTAL_SALA_SERVER" placeholder="DADO_A_ASSINAR" spellcheck="false" autocomplete="off" />
+        </div>
       </div>
+
+      <!-- Generate button -->
+      <button class="btn-generate" id="btnGenerate" onclick="gerarQRCode()">
+        ▶ ASSINAR &amp; GERAR
+      </button>
+
+      <!-- Install app button -->
+      <a class="btn-install" href="https://github.com/joao730/qr-verifier-android/releases/download/v1.0.0/app-debug.apk" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
+          <path d="M8 12l4 4 4-4M12 8v8"/>
+        </svg>
+        INSTALAR APP ANDROID
+      </a>
+
     </div>
 
-    <script>
-      // Banco de chaves ECC (P-256) geradas para a PoC
-      const trustStore = {
-        "01": {
-          name: "ADMIN",
-          color: "#6200ee",
-          d: "366f79460024ef699a1e0263fbf90a34aa5192f7f71774e9e5ca406397912492",
-          pub: "04590a616ba5d36418b53b5ae694d15142892b1cbe409d09269e754655282d86a4a1134723750b7d591efd7d29001fe98f3bd65d122cd5d48b1328efb6c1cdb198",
-        },
-        "02": {
-          name: "FINANCEIRO",
-          color: "#2e7d32",
-          d: "5a20d87917dc0331ef768452e13327eca00bd77f88021a91d013929d41e61a28", // Chave simulada válida
-          pub: "04e440e369f24c21142a31a12fbe7780ab3ae21705d3c73f33f15bc816842ba90013c026dbf7ed547a50552484d1dbe90d516b1d160a4240356d770c80019aaa7a",
-        },
-        "03": {
-          name: "VISITANTE",
-          color: "#d84315",
-          d: "41a2907b9ec9a1af5303fc3cb0c084eeb3b8b1089adb2ffcb3feb8006d1f4fac", // Chave simulada válida
-          pub: "0453af5b96bd8d7c5a0fae4a2dac905a904531b9503dbcf197190322c39410cda784f93074f641bb2af5138728eb2ba93756034ac505fd4745ce28d65aaa8b4446",
-        },
-      };
+    <!-- RIGHT: QR output -->
+    <div class="right-panel">
 
-      let qrcode = new QRCode(document.getElementById("qrcode"), {
-        width: 256,
-        height: 256,
-      });
+      <div>
+        <div class="section-label" style="justify-content: center;">// qr code assinado</div>
+      </div>
 
-      function updateUI() {
-        const id = document.getElementById("keySelector").value;
-        const keyData = trustStore[id];
-        document.getElementById("pubKeyDisplay").innerText = keyData.pub;
-        document.getElementById("badge").innerText = `Emissor: ${keyData.name}`;
-        document.getElementById("badge").style.background =
-          keyData.color + "22"; // Transparência
-        document.getElementById("badge").style.color = keyData.color;
-      }
+      <!-- QR Frame -->
+      <div class="qr-frame">
+        <div class="qr-frame-inner"></div>
+        <div id="qrcode">
+          <div class="qr-placeholder">
+            <div class="qr-placeholder-icon">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+            AGUARDANDO GERAÇÃO
+          </div>
+        </div>
+      </div>
 
-      function gerarQRCode() {
-        const id = document.getElementById("keySelector").value;
-        const dado = document.getElementById("dataInput").value;
-        const key = trustStore[id];
+      <!-- Signature info -->
+      <div class="sig-display" id="sigDisplay">
+        <div class="sig-row">
+          <span class="sig-key">STATUS:</span>
+          <span class="sig-val">AGUARDANDO INPUT<span class="cursor"></span></span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-key">FORMATO:</span>
+          <span class="sig-val">ID | DADO | ASSINATURA_DER_HEX</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-key">PAYLOAD:</span>
+          <span class="sig-val" id="sigPayload">—</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-key">SIG HEX:</span>
+          <span class="sig-val highlight" id="sigHex">—</span>
+        </div>
+      </div>
 
+    </div>
+  </main>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="status-left">
+      <span>ECDSA-QR-EMITTER v2.0</span>
+      <span style="color: var(--border-bright)">|</span>
+      <span class="status-msg" id="statusMsg">SISTEMA PRONTO</span>
+    </div>
+    <div>
+      <span id="statusTime"></span>
+    </div>
+  </div>
+
+  <script>
+    // ── TrustStore — chaves ECDSA P-256 reais ──────────────────────────
+    const trustStore = {
+      "01": {
+        name: "ADMIN",
+        role: "ADMINISTRADOR MASTER",
+        d: "366f79460024ef699a1e0263fbf90a34aa5192f7f71774e9e5ca406397912492",
+        pub: "04590a616ba5d36418b53b5ae694d15142892b1cbe409d09269e754655282d86a4a1134723750b7d591efd7d29001fe98f3bd65d122cd5d48b1328efb6c1cdb198",
+      },
+      "02": {
+        name: "FINANCEIRO",
+        role: "OPERACIONAL FINANCEIRO",
+        d: "5a20d87917dc0331ef768452e13327eca00bd77f88021a91d013929d41e61a28",
+        pub: "04e440e369f24c21142a31a12fbe7780ab3ae21705d3c73f33f15bc816842ba90013c026dbf7ed547a50552484d1dbe90d516b1d160a4240356d770c80019aaa7a",
+      },
+      "03": {
+        name: "VISITANTE",
+        role: "ACESSO RESTRITO",
+        d: "41a2907b9ec9a1af5303fc3cb0c084eeb3b8b1089adb2ffcb3feb8006d1f4fac",
+        pub: "0453af5b96bd8d7c5a0fae4a2dac905a904531b9503dbcf197190322c39410cda784f93074f641bb2af5138728eb2ba93756034ac505fd4745ce28d65aaa8b4446",
+      },
+    };
+
+    let currentCert = "01";
+    let qrInstance = null;
+
+    // ── Clock ──────────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("statusTime").textContent =
+        now.toISOString().replace("T", " ").substring(0, 19) + " UTC";
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ── Status message ─────────────────────────────────────────────────
+    function setStatus(msg, type = "ok") {
+      const el = document.getElementById("statusMsg");
+      el.textContent = msg;
+      el.className = "status-msg" + (type === "error" ? " error" : type === "warn" ? " warn" : "");
+    }
+
+    // ── Cert selection ─────────────────────────────────────────────────
+    function selectCert(id) {
+      currentCert = id;
+      document.querySelectorAll(".cert-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("btn-" + id).classList.add("active");
+
+      const key = trustStore[id];
+      document.getElementById("infoId").textContent = id;
+      document.getElementById("infoRole").textContent = key.role;
+      document.getElementById("infoPub").textContent = key.pub;
+
+      setStatus("CERTIFICADO " + key.name + " SELECIONADO");
+
+      // Reset QR placeholder
+      const qrEl = document.getElementById("qrcode");
+      qrEl.innerHTML = `
+        <div class="qr-placeholder">
+          <div class="qr-placeholder-icon">
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+          </div>
+          AGUARDANDO GERAÇÃO
+        </div>`;
+      qrInstance = null;
+
+      document.getElementById("sigPayload").textContent = "—";
+      document.getElementById("sigHex").textContent = "—";
+    }
+
+    // ── Generate QR ────────────────────────────────────────────────────
+    function gerarQRCode() {
+      const dado = document.getElementById("dataInput").value.trim();
+      if (!dado) { setStatus("ERRO: PAYLOAD VAZIO", "error"); return; }
+
+      const btn = document.getElementById("btnGenerate");
+      btn.classList.add("loading");
+      btn.textContent = "▶ ASSINANDO...";
+      setStatus("EXECUTANDO SHA256withECDSA...", "warn");
+
+      setTimeout(() => {
         try {
-          // 1. Inicializa o motor de assinatura (SHA256 com ECDSA)
+          const key = trustStore[currentCert];
+
           const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
           sig.init({ d: key.d, curve: "secp256r1" });
-
-          // 2. Assina o dado
           sig.updateString(dado);
           const assinaturaHex = sig.sign();
 
-          // 3. Formata o payload final: ID|DADO|ASSINATURA
-          const payload = `${id}|${dado}|${assinaturaHex}`;
+          const payload = `${currentCert}|${dado}|${assinaturaHex}`;
 
-          // 4. Renderiza o QR
-          qrcode.clear();
-          qrcode.makeCode(payload);
+          const qrEl = document.getElementById("qrcode");
+          qrEl.innerHTML = "";
 
-          console.log("QR Code Gerado com Sucesso!");
-          console.log("Payload:", payload);
+          if (!qrInstance) {
+            qrInstance = new QRCode(qrEl, {
+              width: 256, height: 256,
+              colorDark: "#000000",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M,
+            });
+          } else {
+            qrInstance.clear();
+          }
+          qrInstance.makeCode(payload);
+
+          // Scan animation
+
+          // Update sig display
+          document.getElementById("sigPayload").textContent =
+            currentCert + "|" + dado + "|" + assinaturaHex.substring(0, 20) + "...";
+          document.getElementById("sigHex").textContent = assinaturaHex;
+
+          setStatus("QR ASSINADO COM SUCESSO — CERT " + key.name);
+
+          console.log("Payload completo:", payload);
         } catch (e) {
-          alert("Erro ao gerar assinatura: " + e);
+          setStatus("ERRO NA ASSINATURA: " + e, "error");
+        } finally {
+          btn.classList.remove("loading");
+          btn.textContent = "▶ ASSINAR & GERAR";
         }
-      }
+      }, 200);
+    }
 
-      // Inicialização padrão
-      updateUI();
-    </script>
-  </body>
+    // ── Init ───────────────────────────────────────────────────────────
+    selectCert("01");</script>
+</body>
 </html>
