@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="QR Verifier" />
+    <title>QR Verifier</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.21.3/zxing.min.js"></script>
+    <!-- Chaves compartilhadas (TrustStore) -->
+    <script src="keys.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap");
+      :root {
+        --bg: #0a0a0f;
+        --surface: #111118;
+        --border: #1e1e2e;
+        --accent: #7c3aed;
+        --accent2: #06b6d4;
+        --valid: #10b981;
+        --invalid: #ef4444;
+        --warn: #f59e0b;
+        --text: #e2e8f0;
+        --muted: #64748b;
+        --mono: "Share Tech Mono", monospace;
+        --sans: "Outfit", sans-serif;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        overflow: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+      #app {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+      header {
+        width: 100%;
+        padding: 20px 24px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .logo-mark {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .logo-text {
+        display: flex;
+        flex-direction: column;
+      }
+      .logo-title {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 1;
+      }
+      .logo-sub {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+      .status-dot {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--valid);
+        box-shadow: 0 0 8px var(--valid);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      #scanner-screen {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        gap: 24px;
+      }
+      .scanner-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+      }
+      #video {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        border-radius: 16px;
+        display: block;
+        background: #000;
+      }
+      .scanner-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        pointer-events: none;
+      }
+      .scanner-overlay::before,
+      .scanner-overlay::after {
+        content: "";
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        border-color: var(--accent);
+        border-style: solid;
+      }
+      .scanner-overlay::before {
+        top: 12px;
+        left: 12px;
+        border-width: 3px 0 0 3px;
+        border-radius: 4px 0 0 0;
+      }
+      .scanner-overlay::after {
+        bottom: 12px;
+        right: 12px;
+        border-width: 0 3px 3px 0;
+        border-radius: 0 0 4px 0;
+      }
+      .corner-br {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        border-top: 3px solid var(--accent);
+        border-right: 3px solid var(--accent);
+        border-radius: 0 4px 0 0;
+      }
+      .corner-bl {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        width: 32px;
+        height: 32px;
+        border-bottom: 3px solid var(--accent);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 0 0 4px;
+      }
+      .scan-line {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent),
+          transparent
+        );
+        border-radius: 2px;
+        top: 16px;
+        animation: scanMove 2.5s ease-in-out infinite;
+      }
+      @keyframes scanMove {
+        0% {
+          top: 16px;
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          top: calc(100% - 16px);
+          opacity: 0;
+        }
+      }
+      .hint-text {
+        font-size: 13px;
+        color: var(--muted);
+        text-align: center;
+        font-family: var(--mono);
+        letter-spacing: 0.05em;
+      }
+      #result-screen {
+        flex: 1;
+        width: 100%;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px;
+        gap: 16px;
+        overflow-y: auto;
+      }
+      .result-icon {
+        font-size: 64px;
+        line-height: 1;
+        margin-top: 8px;
+        animation: iconPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes iconPop {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .result-title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-align: center;
+      }
+      .result-card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .result-card.valid {
+        border-color: rgba(16, 185, 129, 0.3);
+        background: rgba(16, 185, 129, 0.05);
+      }
+      .result-card.invalid {
+        border-color: rgba(239, 68, 68, 0.3);
+        background: rgba(239, 68, 68, 0.05);
+      }
+      .result-card.warn {
+        border-color: rgba(245, 158, 11, 0.3);
+        background: rgba(245, 158, 11, 0.05);
+      }
+      .info-row {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .info-label {
+        font-size: 10px;
+        font-family: var(--mono);
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .info-value {
+        font-size: 14px;
+        font-weight: 500;
+        word-break: break-all;
+      }
+      .info-value.mono {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--accent2);
+      }
+      .role-card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+      }
+      .role-header {
+        font-size: 10px;
+        font-family: var(--mono);
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 99px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .role-badge.admin {
+        background: rgba(124, 58, 237, 0.2);
+        color: #a78bfa;
+        border: 1px solid rgba(124, 58, 237, 0.4);
+      }
+      .role-badge.financeiro {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+      }
+      .role-badge.visitante {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+      }
+      .role-desc {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .btn-scan {
+        width: 100%;
+        max-width: 380px;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--accent), #5b21b6);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: var(--sans);
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+        margin-top: 4px;
+      }
+      .btn-scan:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+      }
+      #perm-screen {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        gap: 16px;
+        text-align: center;
+      }
+      #perm-screen .icon {
+        font-size: 48px;
+      }
+      #perm-screen p {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="logo-mark">🔐</div>
+        <div class="logo-text">
+          <span class="logo-title">QR Verifier</span>
+          <span class="logo-sub">ECDSA P-256 · ECC</span>
+        </div>
+        <div class="status-dot">
+          <span class="dot"></span><span>ONLINE</span>
+        </div>
+      </header>
+
+      <div id="scanner-screen">
+        <div class="scanner-wrapper">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="scanner-overlay">
+            <div class="corner-br"></div>
+            <div class="corner-bl"></div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <p class="hint-text">Aponte para um QR Code ECC assinado</p>
+      </div>
+
+      <div id="result-screen">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-card" id="result-card">
+          <div class="info-row" id="row-emissor" style="display: none">
+            <span class="info-label">Emissor</span>
+            <span class="info-value" id="val-emissor"></span>
+          </div>
+          <div class="info-row" id="row-dado" style="display: none">
+            <span class="info-label">Dado verificado</span>
+            <span class="info-value mono" id="val-dado"></span>
+          </div>
+          <div class="info-row" id="row-msg" style="display: none">
+            <span class="info-label">Detalhe</span>
+            <span class="info-value" id="val-msg"></span>
+          </div>
+        </div>
+        <div class="role-card" id="role-card" style="display: none">
+          <div class="role-header">Nível de Acesso</div>
+          <div class="role-badge" id="role-badge"></div>
+          <div class="role-desc" id="role-desc"></div>
+        </div>
+        <button class="btn-scan" onclick="resetScanner()">
+          ↩ Escanear outro QR
+        </button>
+      </div>
+
+      <div id="perm-screen">
+        <div class="icon">📷</div>
+        <div class="result-title">Permissão de câmera necessária</div>
+        <p>
+          Acesse as configurações do navegador e permita o acesso à câmera para
+          este site.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      // TRUST_STORE é carregado de keys.js via <script src="keys.js">
+
+      function hexToBytes(hex) {
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < hex.length; i += 2)
+          bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+        return bytes;
+      }
+
+      // Converte assinatura DER (jsrsasign) para Raw r||s (Web Crypto API)
+      // DER: 30 XX 02 XX [r...] 02 XX [s...]  →  Raw: [r 32B][s 32B]
+      function derToRaw(sigHex) {
+        const b = hexToBytes(sigHex);
+        let offset = 2; // pula 0x30 e totalLen
+
+        offset++; // pula tag 0x02
+        let rLen = b[offset++];
+        let rStart = offset;
+        if (b[rStart] === 0x00) {
+          rStart++;
+          rLen--;
+        } // remove padding DER
+        const r = b.slice(rStart, rStart + rLen);
+        offset = rStart + rLen;
+
+        offset++; // pula tag 0x02
+        let sLen = b[offset++];
+        let sStart = offset;
+        if (b[sStart] === 0x00) {
+          sStart++;
+          sLen--;
+        } // remove padding DER
+        const s = b.slice(sStart, sStart + sLen);
+
+        const raw = new Uint8Array(64);
+        raw.set(r, 32 - r.length); // zero-padding à esquerda se r < 32B
+        raw.set(s, 64 - s.length); // zero-padding à esquerda se s < 32B
+        return raw;
+      }
+
+      async function importPublicKey(pubHex) {
+        const raw = hexToBytes(pubHex);
+        return crypto.subtle.importKey(
+          "raw",
+          raw,
+          { name: "ECDSA", namedCurve: "P-256" },
+          false,
+          ["verify"],
+        );
+      }
+
+      async function verifySignature(pubHex, data, sigHex) {
+        const key = await importPublicKey(pubHex);
+        const sigBytes = derToRaw(sigHex); // converte DER → Raw antes de verificar
+        const dataBytes = new TextEncoder().encode(data);
+        return crypto.subtle.verify(
+          { name: "ECDSA", hash: "SHA-256" },
+          key,
+          sigBytes,
+          dataBytes,
+        );
+      }
+
+      async function verifyPayload(raw) {
+        const parts = raw.split("|");
+        if (parts.length !== 3) return { status: "malformed" };
+
+        const [certId, data, sigHex] = parts;
+        const entry = TRUST_STORE[certId];
+        if (!entry) return { status: "unknown", certId };
+
+        try {
+          const valid = await verifySignature(entry.pub, data, sigHex);
+          if (valid) return { status: "valid", certId, data, entry };
+          return { status: "invalid", certId, data };
+        } catch (e) {
+          console.error("Erro na verificação:", e);
+          return { status: "invalid", certId, data };
+        }
+      }
+
+      function showResult(result) {
+        document.getElementById("scanner-screen").style.display = "none";
+        const rs = document.getElementById("result-screen");
+        rs.style.display = "flex";
+
+        const icon = document.getElementById("result-icon");
+        const title = document.getElementById("result-title");
+        const card = document.getElementById("result-card");
+        const roleCard = document.getElementById("role-card");
+
+        card.className = "result-card";
+        roleCard.style.display = "none";
+        document.getElementById("row-emissor").style.display = "none";
+        document.getElementById("row-dado").style.display = "none";
+        document.getElementById("row-msg").style.display = "none";
+
+        if (result.status === "valid") {
+          icon.textContent = "✅";
+          title.textContent = "ACESSO AUTORIZADO";
+          title.style.color = "var(--valid)";
+          card.classList.add("valid");
+          document.getElementById("row-emissor").style.display = "";
+          document.getElementById("val-emissor").textContent =
+            `${result.entry.name} (ID: ${result.certId})`;
+          document.getElementById("row-dado").style.display = "";
+          document.getElementById("val-dado").textContent = result.data;
+          roleCard.style.display = "";
+          const badge = document.getElementById("role-badge");
+          badge.className = `role-badge ${result.entry.role}`;
+          badge.textContent = result.entry.roleLabel;
+          document.getElementById("role-desc").textContent =
+            result.entry.roleDesc;
+        } else if (result.status === "invalid") {
+          icon.textContent = "❌";
+          title.textContent = "ASSINATURA INVÁLIDA";
+          title.style.color = "var(--invalid)";
+          card.classList.add("invalid");
+          document.getElementById("row-emissor").style.display = "";
+          document.getElementById("val-emissor").textContent =
+            `ID: ${result.certId}`;
+          document.getElementById("row-dado").style.display = "";
+          document.getElementById("val-dado").textContent = result.data;
+          document.getElementById("row-msg").style.display = "";
+          document.getElementById("val-msg").textContent =
+            "O dado pode ter sido adulterado ou a chave é inválida.";
+        } else if (result.status === "unknown") {
+          icon.textContent = "⚠️";
+          title.textContent = "EMISSOR DESCONHECIDO";
+          title.style.color = "var(--warn)";
+          card.classList.add("warn");
+          document.getElementById("row-msg").style.display = "";
+          document.getElementById("val-msg").textContent =
+            `ID '${result.certId}' não está no TrustStore.`;
+        } else {
+          icon.textContent = "⚠️";
+          title.textContent = "QR INVÁLIDO";
+          title.style.color = "var(--warn)";
+          card.classList.add("warn");
+          document.getElementById("row-msg").style.display = "";
+          document.getElementById("val-msg").textContent =
+            "Formato não reconhecido — não é um QR ECC assinado.";
+        }
+      }
+
+      function resetScanner() {
+        document.getElementById("result-screen").style.display = "none";
+        document.getElementById("scanner-screen").style.display = "flex";
+        lastScanned = "";
+        startScanner();
+      }
+
+      let codeReader = null;
+      let lastScanned = "";
+
+      async function startScanner() {
+        try {
+          if (typeof ZXing !== "undefined") {
+            codeReader = new ZXing.BrowserQRCodeReader();
+            const devices =
+              await ZXing.BrowserCodeReader.listVideoInputDevices();
+            const deviceId =
+              devices.length > 1 ? devices[1].deviceId : devices[0]?.deviceId;
+            codeReader.decodeFromVideoDevice(
+              deviceId,
+              "video",
+              async (result, err) => {
+                if (result && result.text !== lastScanned) {
+                  lastScanned = result.text;
+                  codeReader.reset();
+                  const r = await verifyPayload(result.text);
+                  showResult(r);
+                }
+              },
+            );
+          } else {
+            await startNativeScanner();
+          }
+        } catch (e) {
+          await startNativeScanner();
+        }
+      }
+
+      async function startNativeScanner() {
+        const video = document.getElementById("video");
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+          video.srcObject = stream;
+          if ("BarcodeDetector" in window) {
+            const detector = new BarcodeDetector({ formats: ["qr_code"] });
+            const scan = async () => {
+              if (
+                document.getElementById("scanner-screen").style.display ===
+                "none"
+              )
+                return;
+              try {
+                const barcodes = await detector.detect(video);
+                if (
+                  barcodes.length > 0 &&
+                  barcodes[0].rawValue !== lastScanned
+                ) {
+                  lastScanned = barcodes[0].rawValue;
+                  stream.getTracks().forEach((t) => t.stop());
+                  const r = await verifyPayload(lastScanned);
+                  showResult(r);
+                  return;
+                }
+              } catch {}
+              requestAnimationFrame(scan);
+            };
+            video.addEventListener("loadeddata", scan);
+          } else {
+            showManualFallback();
+          }
+        } catch (e) {
+          document.getElementById("scanner-screen").style.display = "none";
+          document.getElementById("perm-screen").style.display = "flex";
+        }
+      }
+
+      function showManualFallback() {
+        const hint = document.querySelector(".hint-text");
+        hint.innerHTML = `
+    Safari não suporta leitura automática.<br>
+    <strong style="color:var(--accent2)">Use a câmera do iPhone para escanear o QR.</strong><br>
+    Cole o payload abaixo para verificar manualmente:
+    <br><br>
+    <input id="manual-input" placeholder="01|DADO|SIG"
+      style="width:100%;padding:10px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-family:monospace;font-size:12px;margin-top:8px">
+    <button onclick="manualVerify()"
+      style="margin-top:8px;width:100%;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
+      Verificar
+    </button>
+  `;
+      }
+
+      async function manualVerify() {
+        const val = document.getElementById("manual-input")?.value?.trim();
+        if (!val) return;
+        lastScanned = val;
+        const r = await verifyPayload(val);
+        showResult(r);
+      }
+
+      startScanner();
+    </script>
+  </body>
+</html>
