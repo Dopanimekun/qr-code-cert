@@ -13,6 +13,8 @@
 
     <!-- Chaves compartilhadas (TrustStore) -->
     <script src="keys.js"></script>
+    <!-- Chaves de simulação didática (fora do TrustStore) -->
+    <script src="demo-keys.js"></script>
 
     <style>
       :root {
@@ -716,6 +718,214 @@
         }
       }
 
+      /* ── Nav tabs ── */
+      .page-nav {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        border-bottom: 1px solid var(--border-bright);
+        background: var(--bg2);
+        overflow-x: auto;
+      }
+      .page-nav::-webkit-scrollbar {
+        height: 2px;
+      }
+      .page-nav::-webkit-scrollbar-thumb {
+        background: var(--border-bright);
+      }
+
+      .nav-tab {
+        flex-shrink: 0;
+        padding: 12px 24px;
+        background: transparent;
+        border: none;
+        border-right: 1px solid var(--border-bright);
+        border-bottom: 2px solid transparent;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        cursor: crosshair;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav-tab:hover {
+        color: var(--green-dim);
+        background: var(--green-glow);
+      }
+      .nav-tab.active {
+        color: var(--green);
+        border-bottom-color: var(--green);
+        background: rgba(0, 255, 65, 0.05);
+      }
+      .nav-tab .tab-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .nav-tab.tab-warn.active {
+        color: var(--amber);
+        border-bottom-color: var(--amber);
+        background: rgba(255, 170, 0, 0.05);
+      }
+      .nav-tab.tab-warn:hover {
+        color: var(--amber);
+        background: rgba(255, 170, 0, 0.08);
+      }
+      .nav-tab.tab-error.active {
+        color: var(--red);
+        border-bottom-color: var(--red);
+        background: rgba(255, 51, 51, 0.05);
+      }
+      .nav-tab.tab-error:hover {
+        color: var(--red);
+        background: rgba(255, 51, 51, 0.08);
+      }
+      .nav-tab.tab-plain.active {
+        color: #888;
+        border-bottom-color: #888;
+        background: rgba(136, 136, 136, 0.05);
+      }
+      .nav-tab.tab-plain:hover {
+        color: #aaa;
+        background: rgba(136, 136, 136, 0.08);
+      }
+
+      /* ── Page sections ── */
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
+
+      /* ── Alert badge ── */
+      .alert-badge {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border: 1px solid;
+        font-size: 0.65rem;
+        letter-spacing: 2px;
+        margin-bottom: 4px;
+        clip-path: polygon(
+          0 0,
+          calc(100% - 6px) 0,
+          100% 6px,
+          100% 100%,
+          0 100%
+        );
+      }
+      .alert-badge.warn {
+        border-color: var(--amber);
+        color: var(--amber);
+        background: rgba(255, 170, 0, 0.08);
+      }
+      .alert-badge.error {
+        border-color: var(--red);
+        color: var(--red);
+        background: rgba(255, 51, 51, 0.08);
+      }
+      .alert-badge svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
+      /* ── Page 4 plain QR ── */
+      .plain-panel {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 60px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+      }
+      .plain-title {
+        font-family: "Orbitron", monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #888;
+        letter-spacing: 4px;
+        text-align: center;
+      }
+      .plain-warn {
+        font-size: 0.6rem;
+        letter-spacing: 3px;
+        color: #666;
+        text-align: center;
+        border: 1px dashed #444;
+        padding: 8px 16px;
+      }
+
+      #qrcode2,
+      #qrcode3,
+      #qrcode4 {
+        width: 256px;
+        height: 256px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        position: relative;
+        z-index: 1;
+      }
+      #qrcode2 canvas,
+      #qrcode2 img,
+      #qrcode3 canvas,
+      #qrcode3 img,
+      #qrcode4 canvas,
+      #qrcode4 img {
+        display: block;
+      }
+
+      .qr-frame.err::before,
+      .qr-frame.err::after {
+        border-color: var(--red);
+        box-shadow: none;
+      }
+      .qr-frame.err .qr-frame-inner::before,
+      .qr-frame.err .qr-frame-inner::after {
+        border-color: var(--red);
+        box-shadow: none;
+      }
+      .qr-frame.warn-f::before,
+      .qr-frame.warn-f::after {
+        border-color: var(--amber);
+        box-shadow: none;
+      }
+      .qr-frame.warn-f .qr-frame-inner::before,
+      .qr-frame.warn-f .qr-frame-inner::after {
+        border-color: var(--amber);
+        box-shadow: none;
+      }
+      .qr-frame.plain::before,
+      .qr-frame.plain::after {
+        border-color: #888;
+        box-shadow: none;
+      }
+      .qr-frame.plain .qr-frame-inner::before,
+      .qr-frame.plain .qr-frame-inner::after {
+        border-color: #888;
+        box-shadow: none;
+      }
+
+      .sig-val.error {
+        color: var(--red);
+      }
+      .sig-val.warn-col {
+        color: var(--amber);
+      }
+      .sig-val.plain-col {
+        color: #888;
+      }
+
       /* ── Responsive ── */
       @media (max-width: 768px) {
         main {
@@ -738,6 +948,13 @@
         .header-status {
           gap: 12px;
         }
+        .plain-panel {
+          padding: 32px 20px;
+        }
+        .nav-tab {
+          padding: 10px 14px;
+          font-size: 0.58rem;
+        }
       }
     </style>
   </head>
@@ -756,143 +973,551 @@
       </div>
     </header>
 
-    <main>
-      <!-- LEFT: Controls -->
-      <div class="left-panel">
-        <div>
-          <div class="section-label">// seleção de certificado</div>
-          <div class="cert-grid">
-            <button
-              class="cert-btn active"
-              onclick="selectCert('01')"
-              id="btn-01"
-            >
-              <span class="cert-id">01</span>
-              <span class="cert-role">ADMIN</span>
-            </button>
-            <button class="cert-btn" onclick="selectCert('02')" id="btn-02">
-              <span class="cert-id">02</span>
-              <span class="cert-role">FINANCEIRO</span>
-            </button>
-            <button class="cert-btn" onclick="selectCert('03')" id="btn-03">
-              <span class="cert-id">03</span>
-              <span class="cert-role">VISITANTE</span>
-            </button>
+    <!-- ── Navigation tabs ── -->
+    <nav class="page-nav">
+      <button class="nav-tab active" onclick="switchPage(1)">
+        <span class="tab-dot"></span> 01 // EMISSOR LEGÍTIMO
+      </button>
+      <button class="nav-tab tab-error" onclick="switchPage(2)">
+        <span class="tab-dot"></span> 02 // CHAVE INVÁLIDA
+      </button>
+      <button class="nav-tab tab-warn" onclick="switchPage(3)">
+        <span class="tab-dot"></span> 03 // CERT DESCONHECIDO
+      </button>
+      <button class="nav-tab tab-plain" onclick="switchPage(4)">
+        <span class="tab-dot"></span> 04 // QR CONVENCIONAL
+      </button>
+    </nav>
+
+    <!-- PAGE 1 -->
+    <div id="page-1" class="page active">
+      <main>
+        <!-- LEFT: Controls -->
+        <div class="left-panel">
+          <div>
+            <div class="section-label">// seleção de certificado</div>
+            <div class="cert-grid">
+              <button
+                class="cert-btn active"
+                onclick="selectCert('01')"
+                id="btn-01"
+              >
+                <span class="cert-id">01</span>
+                <span class="cert-role">ADMIN</span>
+              </button>
+              <button class="cert-btn" onclick="selectCert('02')" id="btn-02">
+                <span class="cert-id">02</span>
+                <span class="cert-role">FINANCEIRO</span>
+              </button>
+              <button class="cert-btn" onclick="selectCert('03')" id="btn-03">
+                <span class="cert-id">03</span>
+                <span class="cert-role">VISITANTE</span>
+              </button>
+            </div>
           </div>
+
+          <div>
+            <div class="section-label">// informações do certificado</div>
+            <div class="cert-info" id="certInfo">
+              <div class="cert-info-row">
+                <span class="cert-info-key">ID:</span>
+                <span class="cert-info-val" id="infoId">01</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">ROLE:</span>
+                <span class="cert-info-val" id="infoRole"
+                  >ADMINISTRADOR MASTER</span
+                >
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">CURVA:</span>
+                <span class="cert-info-val">secp256r1 / P-256</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">ALG:</span>
+                <span class="cert-info-val">SHA256withECDSA</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">PUB:</span>
+                <span
+                  class="cert-info-val"
+                  id="infoPub"
+                  style="font-size: 0.55rem"
+                ></span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-label">// payload de acesso</div>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="dataInput"
+                value=""
+                placeholder="DADOS A ASSINAR"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <button class="btn-generate" id="btnGenerate" onclick="gerarQRCode()">
+            ▶ ASSINAR &amp; GERAR
+          </button>
+
+          <a
+            class="btn-install"
+            href="https://github.com/joao730/qr-verifier-android/releases/download/v1.0.0/app-debug.apk"
+            target="_blank"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
+              <path d="M8 12l4 4 4-4M12 8v8" />
+            </svg>
+            INSTALAR APP ANDROID
+          </a>
         </div>
 
-        <div>
-          <div class="section-label">// informações do certificado</div>
-          <div class="cert-info" id="certInfo">
-            <div class="cert-info-row">
-              <span class="cert-info-key">ID:</span>
-              <span class="cert-info-val" id="infoId">01</span>
+        <!-- RIGHT: QR output -->
+        <div class="right-panel">
+          <div>
+            <div class="section-label" style="justify-content: center">
+              // qr code assinado
             </div>
-            <div class="cert-info-row">
-              <span class="cert-info-key">ROLE:</span>
-              <span class="cert-info-val" id="infoRole"
-                >ADMINISTRADOR MASTER</span
-              >
+          </div>
+
+          <div class="qr-frame">
+            <div class="qr-frame-inner"></div>
+            <div id="qrcode">
+              <div class="qr-placeholder">
+                <div class="qr-placeholder-icon">
+                  <span></span><span></span><span></span> <span></span
+                  ><span></span><span></span> <span></span><span></span
+                  ><span></span>
+                </div>
+                AGUARDANDO GERAÇÃO
+              </div>
             </div>
-            <div class="cert-info-row">
-              <span class="cert-info-key">CURVA:</span>
-              <span class="cert-info-val">secp256r1 / P-256</span>
-            </div>
-            <div class="cert-info-row">
-              <span class="cert-info-key">ALG:</span>
-              <span class="cert-info-val">SHA256withECDSA</span>
-            </div>
-            <div class="cert-info-row">
-              <span class="cert-info-key">PUB:</span>
-              <span
-                class="cert-info-val"
-                id="infoPub"
-                style="font-size: 0.55rem"
+          </div>
+
+          <div class="sig-display" id="sigDisplay">
+            <div class="sig-row">
+              <span class="sig-key">STATUS:</span>
+              <span class="sig-val"
+                >AGUARDANDO INPUT<span class="cursor"></span
               ></span>
             </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="section-label">// payload de acesso</div>
-          <div class="input-wrapper">
-            <input
-              type="text"
-              id="dataInput"
-              value=""
-              placeholder="DADOS A ASSINAR"
-              spellcheck="false"
-              autocomplete="off"
-            />
-          </div>
-        </div>
-
-        <button class="btn-generate" id="btnGenerate" onclick="gerarQRCode()">
-          ▶ ASSINAR &amp; GERAR
-        </button>
-
-        <a
-          class="btn-install"
-          href="https://github.com/joao730/qr-verifier-android/releases/download/v1.0.0/app-debug.apk"
-          target="_blank"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
-            <path d="M8 12l4 4 4-4M12 8v8" />
-          </svg>
-          INSTALAR APP ANDROID
-        </a>
-      </div>
-
-      <!-- RIGHT: QR output -->
-      <div class="right-panel">
-        <div>
-          <div class="section-label" style="justify-content: center">
-            // qr code assinado
-          </div>
-        </div>
-
-        <div class="qr-frame">
-          <div class="qr-frame-inner"></div>
-          <div id="qrcode">
-            <div class="qr-placeholder">
-              <div class="qr-placeholder-icon">
-                <span></span><span></span><span></span> <span></span
-                ><span></span><span></span> <span></span><span></span
-                ><span></span>
-              </div>
-              AGUARDANDO GERAÇÃO
+            <div class="sig-row">
+              <span class="sig-key">FORMATO:</span>
+              <span class="sig-val">ID | DADO | ASSINATURA_DER_HEX</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">PAYLOAD:</span>
+              <span class="sig-val" id="sigPayload">—</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">SIG HEX:</span>
+              <span class="sig-val highlight" id="sigHex">—</span>
             </div>
           </div>
         </div>
+      </main>
+    </div>
+    <!-- end page-1 -->
 
-        <div class="sig-display" id="sigDisplay">
-          <div class="sig-row">
-            <span class="sig-key">STATUS:</span>
-            <span class="sig-val"
-              >AGUARDANDO INPUT<span class="cursor"></span
-            ></span>
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 2 — Chave Inválida (chave adulterada / incompatível)
+    ══════════════════════════════════════════════════════ -->
+    <div id="page-2" class="page">
+      <main>
+        <div class="left-panel">
+          <div class="alert-badge error">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+            SIMULAÇÃO: CHAVE PRIVADA ADULTERADA / INCOMPATÍVEL
           </div>
-          <div class="sig-row">
-            <span class="sig-key">FORMATO:</span>
-            <span class="sig-val">ID | DADO | ASSINATURA_DER_HEX</span>
+          <div>
+            <div class="section-label">// seleção de certificado</div>
+            <div class="cert-grid">
+              <button
+                class="cert-btn active"
+                onclick="selectCert2('01')"
+                id="p2-btn-01"
+              >
+                <span class="cert-id">01</span
+                ><span class="cert-role">ADMIN</span>
+              </button>
+              <button
+                class="cert-btn"
+                onclick="selectCert2('02')"
+                id="p2-btn-02"
+              >
+                <span class="cert-id">02</span
+                ><span class="cert-role">FINANCEIRO</span>
+              </button>
+              <button
+                class="cert-btn"
+                onclick="selectCert2('03')"
+                id="p2-btn-03"
+              >
+                <span class="cert-id">03</span
+                ><span class="cert-role">VISITANTE</span>
+              </button>
+            </div>
           </div>
-          <div class="sig-row">
-            <span class="sig-key">PAYLOAD:</span>
-            <span class="sig-val" id="sigPayload">—</span>
+          <div>
+            <div class="section-label">// chave adulterada (d corrompido)</div>
+            <div class="cert-info" id="p2-certInfo">
+              <div class="cert-info-row">
+                <span class="cert-info-key">ID:</span
+                ><span class="cert-info-val" id="p2-infoId">01</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">ROLE:</span
+                ><span class="cert-info-val" id="p2-infoRole"
+                  >ADMINISTRADOR MASTER</span
+                >
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">STATUS:</span
+                ><span class="cert-info-val" style="color: var(--red)"
+                  >CHAVE ADULTERADA</span
+                >
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">D (real):</span
+                ><span
+                  class="cert-info-val"
+                  id="p2-infoRealD"
+                  style="font-size: 0.5rem; color: var(--green)"
+                ></span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">D (fake):</span
+                ><span
+                  class="cert-info-val"
+                  id="p2-infoFakeD"
+                  style="font-size: 0.5rem; color: var(--red)"
+                ></span>
+              </div>
+            </div>
           </div>
-          <div class="sig-row">
-            <span class="sig-key">SIG HEX:</span>
-            <span class="sig-val highlight" id="sigHex">—</span>
+          <div>
+            <div class="section-label">// payload de acesso</div>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="p2-dataInput"
+                placeholder="DADOS A ASSINAR"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <button
+            class="btn-generate"
+            id="p2-btnGenerate"
+            onclick="gerarQRInvalidKey()"
+            style="border-color: var(--red); color: var(--red)"
+          >
+            ▶ ASSINAR COM CHAVE INVÁLIDA
+          </button>
+        </div>
+
+        <div class="right-panel">
+          <div>
+            <div class="section-label" style="justify-content: center">
+              // qr com assinatura inválida
+            </div>
+          </div>
+          <div class="qr-frame err">
+            <div class="qr-frame-inner"></div>
+            <div id="qrcode2">
+              <div class="qr-placeholder">
+                <div class="qr-placeholder-icon">
+                  <span></span><span></span><span></span><span></span
+                  ><span></span><span></span><span></span><span></span
+                  ><span></span>
+                </div>
+                AGUARDANDO GERAÇÃO
+              </div>
+            </div>
+          </div>
+          <div class="sig-display">
+            <div class="sig-row">
+              <span class="sig-key">STATUS:</span
+              ><span class="sig-val error" id="p2-status"
+                >AGUARDANDO INPUT</span
+              >
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">AVISO:</span
+              ><span class="sig-val error">ASSINATURA NÃO VERIFICÁVEL</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">PAYLOAD:</span
+              ><span class="sig-val" id="p2-sigPayload">—</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">SIG HEX:</span
+              ><span class="sig-val error" id="p2-sigHex">—</span>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
+    <!-- end page-2 -->
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 3 — Certificado Desconhecido (não cadastrado)
+    ══════════════════════════════════════════════════════ -->
+    <div id="page-3" class="page">
+      <main>
+        <div class="left-panel">
+          <div class="alert-badge warn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            SIMULAÇÃO: CERTIFICADO NÃO PRESENTE NO BANCO DE DADOS
+          </div>
+          <div>
+            <div class="section-label">
+              // seleção de certificado (desconhecido)
+            </div>
+            <div class="cert-grid">
+              <button
+                class="cert-btn active"
+                onclick="selectCert3('04')"
+                id="p3-btn-04"
+              >
+                <span class="cert-id">04</span
+                ><span class="cert-role">UNKNOWN</span>
+              </button>
+              <button
+                class="cert-btn"
+                onclick="selectCert3('05')"
+                id="p3-btn-05"
+              >
+                <span class="cert-id">05</span
+                ><span class="cert-role">UNKNOWN</span>
+              </button>
+              <button
+                class="cert-btn"
+                onclick="selectCert3('06')"
+                id="p3-btn-06"
+              >
+                <span class="cert-id">06</span
+                ><span class="cert-role">UNKNOWN</span>
+              </button>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">// informações do certificado</div>
+            <div class="cert-info">
+              <div class="cert-info-row">
+                <span class="cert-info-key">ID:</span
+                ><span class="cert-info-val" id="p3-infoId">04</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">ROLE:</span
+                ><span class="cert-info-val" style="color: var(--amber)"
+                  >NÃO RECONHECIDO</span
+                >
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">STATUS:</span
+                ><span class="cert-info-val" style="color: var(--amber)"
+                  >FORA DO TRUST_STORE</span
+                >
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">ALG:</span
+                ><span class="cert-info-val">SHA256withECDSA</span>
+              </div>
+              <div class="cert-info-row">
+                <span class="cert-info-key">PUB:</span
+                ><span
+                  class="cert-info-val"
+                  id="p3-infoPub"
+                  style="font-size: 0.5rem"
+                ></span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">// payload de acesso</div>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="p3-dataInput"
+                placeholder="DADOS A ASSINAR"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <button
+            class="btn-generate"
+            id="p3-btnGenerate"
+            onclick="gerarQRUnknownCert()"
+            style="border-color: var(--amber); color: var(--amber)"
+          >
+            ▶ ASSINAR COM CERT DESCONHECIDO
+          </button>
+        </div>
+
+        <div class="right-panel">
+          <div>
+            <div class="section-label" style="justify-content: center">
+              // qr com cert não cadastrado
+            </div>
+          </div>
+          <div class="qr-frame warn-f">
+            <div class="qr-frame-inner"></div>
+            <div id="qrcode3">
+              <div class="qr-placeholder">
+                <div class="qr-placeholder-icon">
+                  <span></span><span></span><span></span><span></span
+                  ><span></span><span></span><span></span><span></span
+                  ><span></span>
+                </div>
+                AGUARDANDO GERAÇÃO
+              </div>
+            </div>
+          </div>
+          <div class="sig-display">
+            <div class="sig-row">
+              <span class="sig-key">STATUS:</span
+              ><span class="sig-val warn-col" id="p3-status"
+                >AGUARDANDO INPUT</span
+              >
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">AVISO:</span
+              ><span class="sig-val warn-col"
+                >ID NÃO ENCONTRADO NO TRUST_STORE</span
+              >
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">PAYLOAD:</span
+              ><span class="sig-val" id="p3-sigPayload">—</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">SIG HEX:</span
+              ><span class="sig-val warn-col" id="p3-sigHex">—</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- end page-3 -->
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 4 — QR Convencional (sem assinatura)
+    ══════════════════════════════════════════════════════ -->
+    <div id="page-4" class="page">
+      <main
+        style="display: flex; justify-content: center; align-items: flex-start"
+      >
+        <div class="plain-panel" style="width: 100%">
+          <div class="plain-title">QR CODE CONVENCIONAL</div>
+          <div class="plain-warn">
+            ⚠ SEM AUTENTICAÇÃO CRIPTOGRÁFICA — CONTEÚDO NÃO VERIFICÁVEL
+          </div>
+
+          <div style="width: 100%">
+            <div class="section-label">// texto a codificar</div>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="p4-dataInput"
+                placeholder="QUALQUER TEXTO OU URL"
+                spellcheck="false"
+                autocomplete="off"
+                style="border-color: #444; color: #888"
+              />
+            </div>
+          </div>
+
+          <button
+            class="btn-generate"
+            id="p4-btnGenerate"
+            onclick="gerarQRPlain()"
+            style="
+              border-color: #888;
+              color: #888;
+              width: 100%;
+              max-width: 400px;
+            "
+          >
+            ▶ GERAR QR SIMPLES
+          </button>
+
+          <div class="qr-frame plain" style="margin-top: 8px">
+            <div class="qr-frame-inner"></div>
+            <div id="qrcode4">
+              <div class="qr-placeholder" style="color: #555">
+                <div class="qr-placeholder-icon">
+                  <span></span><span></span><span></span><span></span
+                  ><span></span><span></span><span></span><span></span
+                  ><span></span>
+                </div>
+                AGUARDANDO GERAÇÃO
+              </div>
+            </div>
+          </div>
+
+          <div class="sig-display" style="max-width: 400px; width: 100%">
+            <div class="sig-row">
+              <span class="sig-key">STATUS:</span
+              ><span class="sig-val plain-col" id="p4-status"
+                >AGUARDANDO INPUT</span
+              >
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">TIPO:</span
+              ><span class="sig-val plain-col"
+                >QR CODE PADRÃO (ISO/IEC 18004)</span
+              >
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">CERT:</span
+              ><span class="sig-val plain-col">NENHUM</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">ASSIN.:</span
+              ><span class="sig-val plain-col">NENHUMA</span>
+            </div>
+            <div class="sig-row">
+              <span class="sig-key">CONTEÚDO:</span
+              ><span class="sig-val plain-col" id="p4-content">—</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- end page-4 -->
 
     <div class="status-bar">
       <div class="status-left">
@@ -1015,8 +1640,214 @@
         }, 200);
       }
 
+      // ── Page switching ─────────────────────────────────────────────────
+      function switchPage(n) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("page-" + n).classList.add("active");
+        document.querySelectorAll(".nav-tab")[n - 1].classList.add("active");
+        setStatus("PÁGINA " + n + " ATIVA");
+      }
+
+      // ── PAGE 2: Chave Inválida ─────────────────────────────────────────
+      // Chaves adulteradas: mesmos IDs do TRUST_STORE mas d ≠ chave real
+      // (chaves EC válidas, mas não correspondem às pub keys registradas)
+      // TAMPERED_KEYS e UNKNOWN_KEYS carregados de demo-keys.js
+
+      let p2CurrentCert = "01";
+      let qrInstance2 = null;
+
+      function selectCert2(id) {
+        p2CurrentCert = id;
+        document
+          .querySelectorAll("#page-2 .cert-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("p2-btn-" + id).classList.add("active");
+        const k = TAMPERED_KEYS[id];
+        document.getElementById("p2-infoId").textContent = id;
+        document.getElementById("p2-infoRole").textContent = k.role;
+        document.getElementById("p2-infoRealD").textContent = k.realD;
+        document.getElementById("p2-infoFakeD").textContent = k.fakeD;
+        const qrEl = document.getElementById("qrcode2");
+        qrEl.innerHTML =
+          '<div class="qr-placeholder"><div class="qr-placeholder-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>AGUARDANDO GERAÇÃO</div>';
+        qrInstance2 = null;
+        document.getElementById("p2-sigPayload").textContent = "—";
+        document.getElementById("p2-sigHex").textContent = "—";
+        setStatus("CERT " + id + " ADULTERADO SELECIONADO", "error");
+      }
+
+      function gerarQRInvalidKey() {
+        const dado = document.getElementById("p2-dataInput").value.trim();
+        if (!dado) {
+          setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        const btn = document.getElementById("p2-btnGenerate");
+        btn.classList.add("loading");
+        btn.textContent = "▶ ASSINANDO...";
+        setStatus("USANDO CHAVE ADULTERADA...", "error");
+        setTimeout(() => {
+          try {
+            const k = TAMPERED_KEYS[p2CurrentCert];
+            // Assina com a chave FALSA (não corresponde ao pub key registrado)
+            const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
+            sig.init({ d: k.fakeD, curve: "secp256r1" });
+            sig.updateString(dado);
+            const assinaturaHex = sig.sign();
+            const payload = `${p2CurrentCert}|${dado}|${assinaturaHex}`;
+            const qrEl = document.getElementById("qrcode2");
+            qrEl.innerHTML = "";
+            qrInstance2 = new QRCode(qrEl, {
+              text: payload,
+              width: 256,
+              height: 256,
+              colorDark: "#cc0000",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M,
+            });
+            document.getElementById("p2-status").textContent =
+              "ASSINATURA INVÁLIDA — CHAVE INCOMPATÍVEL";
+            document.getElementById("p2-sigPayload").textContent =
+              p2CurrentCert +
+              "|" +
+              dado +
+              "|" +
+              assinaturaHex.substring(0, 20) +
+              "...";
+            document.getElementById("p2-sigHex").textContent = assinaturaHex;
+            setStatus(
+              "QR GERADO COM CHAVE INVÁLIDA — VERIFICAÇÃO FALHARÁ",
+              "error",
+            );
+          } catch (e) {
+            setStatus("ERRO: " + e, "error");
+          } finally {
+            btn.classList.remove("loading");
+            btn.textContent = "▶ ASSINAR COM CHAVE INVÁLIDA";
+          }
+        }, 200);
+      }
+
+      let p3CurrentCert = "04";
+      let qrInstance3 = null;
+
+      function selectCert3(id) {
+        p3CurrentCert = id;
+        document
+          .querySelectorAll("#page-3 .cert-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("p3-btn-" + id).classList.add("active");
+        const k = UNKNOWN_KEYS[id];
+        document.getElementById("p3-infoId").textContent = id;
+        document.getElementById("p3-infoPub").textContent = k.pub;
+        const qrEl = document.getElementById("qrcode3");
+        qrEl.innerHTML =
+          '<div class="qr-placeholder"><div class="qr-placeholder-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>AGUARDANDO GERAÇÃO</div>';
+        qrInstance3 = null;
+        document.getElementById("p3-sigPayload").textContent = "—";
+        document.getElementById("p3-sigHex").textContent = "—";
+        setStatus("CERT DESCONHECIDO " + id + " SELECIONADO", "warn");
+      }
+
+      function gerarQRUnknownCert() {
+        const dado = document.getElementById("p3-dataInput").value.trim();
+        if (!dado) {
+          setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        const btn = document.getElementById("p3-btnGenerate");
+        btn.classList.add("loading");
+        btn.textContent = "▶ ASSINANDO...";
+        setStatus("USANDO CERT NÃO CADASTRADO...", "warn");
+        setTimeout(() => {
+          try {
+            const k = UNKNOWN_KEYS[p3CurrentCert];
+            const sig = new KJUR.crypto.Signature({ alg: "SHA256withECDSA" });
+            sig.init({ d: k.d, curve: "secp256r1" });
+            sig.updateString(dado);
+            const assinaturaHex = sig.sign();
+            const payload = `${p3CurrentCert}|${dado}|${assinaturaHex}`;
+            const qrEl = document.getElementById("qrcode3");
+            qrEl.innerHTML = "";
+            qrInstance3 = new QRCode(qrEl, {
+              text: payload,
+              width: 256,
+              height: 256,
+              colorDark: "#aa6600",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M,
+            });
+            document.getElementById("p3-status").textContent =
+              "CERT " + p3CurrentCert + " — ID NÃO ENCONTRADO NO TRUST_STORE";
+            document.getElementById("p3-sigPayload").textContent =
+              p3CurrentCert +
+              "|" +
+              dado +
+              "|" +
+              assinaturaHex.substring(0, 20) +
+              "...";
+            document.getElementById("p3-sigHex").textContent = assinaturaHex;
+            setStatus(
+              "QR GERADO — CERT " + p3CurrentCert + " AUSENTE DO TRUST_STORE",
+              "warn",
+            );
+          } catch (e) {
+            setStatus("ERRO: " + e, "error");
+          } finally {
+            btn.classList.remove("loading");
+            btn.textContent = "▶ ASSINAR COM CERT DESCONHECIDO";
+          }
+        }, 200);
+      }
+
+      // ── PAGE 4: QR Convencional ────────────────────────────────────────
+      let qrInstance4 = null;
+
+      function gerarQRPlain() {
+        const dado = document.getElementById("p4-dataInput").value.trim();
+        if (!dado) {
+          setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        const btn = document.getElementById("p4-btnGenerate");
+        btn.classList.add("loading");
+        btn.textContent = "▶ GERANDO...";
+        setStatus("GERANDO QR CONVENCIONAL...");
+        setTimeout(() => {
+          try {
+            const qrEl = document.getElementById("qrcode4");
+            qrEl.innerHTML = "";
+            qrInstance4 = new QRCode(qrEl, {
+              text: dado,
+              width: 256,
+              height: 256,
+              colorDark: "#000000",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M,
+            });
+            document.getElementById("p4-status").textContent =
+              "QR GERADO COM SUCESSO (SEM ASSINATURA)";
+            document.getElementById("p4-content").textContent =
+              dado.length > 40 ? dado.substring(0, 40) + "..." : dado;
+            setStatus("QR CONVENCIONAL GERADO");
+          } catch (e) {
+            setStatus("ERRO: " + e, "error");
+          } finally {
+            btn.classList.remove("loading");
+            btn.textContent = "▶ GERAR QR SIMPLES";
+          }
+        }, 100);
+      }
+
       // ── Init ───────────────────────────────────────────────────────────
       selectCert("01");
+      selectCert2("01");
+      selectCert3("04");
     </script>
   </body>
 </html>
