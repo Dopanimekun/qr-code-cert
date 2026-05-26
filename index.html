@@ -986,19 +986,14 @@
             const qrEl = document.getElementById("qrcode");
             qrEl.innerHTML = "";
 
-            if (!qrInstance) {
-              qrInstance = new QRCode(qrEl, {
-                width: 256,
-                height: 256,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M,
-              });
-            } else {
-              qrInstance.clear();
-            }
-
-            qrInstance.makeCode(payload);
+            qrInstance = new QRCode(qrEl, {
+              text: payload,
+              width: 256,
+              height: 256,
+              colorDark: "#000000",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M,
+            });
 
             document.getElementById("sigPayload").textContent =
               currentCert +
