@@ -15,7 +15,7 @@
     />
     <meta name="apple-mobile-web-app-title" content="QR Verifier" />
     <title>QR Verifier</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.21.3/zxing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <!-- Chaves compartilhadas (TrustStore) -->
     <script src="keys.js"></script>
     <style>
@@ -383,6 +383,160 @@
         transform: scale(0.98);
         opacity: 0.9;
       }
+
+      #history-screen {
+        flex: 1;
+        width: 100%;
+        display: none;
+        flex-direction: column;
+        padding: 16px 24px;
+        gap: 0;
+        overflow-y: auto;
+      }
+      .history-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0 16px;
+      }
+      .history-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: var(--text);
+        font-family: var(--mono);
+      }
+      .history-clear {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: var(--mono);
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        cursor: pointer;
+        color: var(--muted);
+        transition: color 0.2s, border-color 0.2s;
+      }
+      .history-clear:hover {
+        color: var(--invalid);
+        border-color: var(--invalid);
+      }
+      .history-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        padding-bottom: 40px;
+      }
+      .history-empty-icon {
+        font-size: 32px;
+        opacity: 0.4;
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.15s;
+        border-radius: 4px;
+      }
+      .history-item:hover {
+        background: rgba(255,255,255,0.03);
+      }
+      .history-item:last-child {
+        border-bottom: none;
+      }
+      .history-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .history-badge.valid   { background: rgba(16,185,129,0.15); }
+      .history-badge.invalid { background: rgba(239,68,68,0.15); }
+      .history-badge.warn    { background: rgba(245,158,11,0.15); }
+      .history-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .history-status {
+        font-size: 12px;
+        font-weight: 600;
+        font-family: var(--mono);
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .history-status.valid   { color: var(--valid); }
+      .history-status.invalid { color: var(--invalid); }
+      .history-status.warn    { color: var(--warn); }
+      .history-detail {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: var(--mono);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+      .history-time {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        flex-shrink: 0;
+      }
+      /* tab bar */
+      .tab-bar {
+        width: 100%;
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 10px;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: color 0.2s, border-color 0.2s;
+      }
+      .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 9px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+
       #perm-screen {
         flex: 1;
         display: none;
@@ -415,6 +569,12 @@
           <span class="dot"></span><span>ONLINE</span>
         </div>
       </header>
+
+      <!-- Tab bar (aparece só quando há histórico) -->
+      <div class="tab-bar" id="tab-bar" style="display:none">
+        <button class="tab-btn active" id="tab-scan" onclick="showTab('scan')">SCANNER</button>
+        <button class="tab-btn" id="tab-hist" onclick="showTab('history')">HISTÓRICO <span class="tab-badge" id="hist-count">0</span></button>
+      </div>
 
       <div id="scanner-screen">
         <div class="scanner-wrapper">
@@ -453,6 +613,19 @@
         <button class="btn-scan" onclick="resetScanner()">
           ↩ Escanear outro QR
         </button>
+      </div>
+
+      <div id="history-screen">
+        <div class="history-header">
+          <span class="history-title">// SCANS DA SESSÃO</span>
+          <button class="history-clear" onclick="clearHistory()">LIMPAR</button>
+        </div>
+        <div id="history-list">
+          <div class="history-empty">
+            <div class="history-empty-icon">📋</div>
+            <span>Nenhum scan realizado</span>
+          </div>
+        </div>
       </div>
 
       <div id="perm-screen">
@@ -530,10 +703,17 @@
       }
 
       async function verifyPayload(raw) {
-        const parts = raw.split("|");
-        if (parts.length !== 3) return { status: "malformed" };
+        // A assinatura hex nunca contém "|", então fatia pelo primeiro e último "|"
+        // Isso permite que o campo DADO contenha "|" sem quebrar o parse
+        const firstPipe = raw.indexOf("|");
+        const lastPipe  = raw.lastIndexOf("|");
+        if (firstPipe === -1 || firstPipe === lastPipe) return { status: "malformed" };
 
-        const [certId, data, sigHex] = parts;
+        const certId = raw.slice(0, firstPipe);
+        const data   = raw.slice(firstPipe + 1, lastPipe);
+        const sigHex = raw.slice(lastPipe + 1);
+
+        if (!certId || !data || !sigHex) return { status: "malformed" };
         const entry = TRUST_STORE[certId];
         if (!entry) return { status: "unknown", certId };
 
@@ -609,6 +789,8 @@
           document.getElementById("val-msg").textContent =
             "Formato não reconhecido — não é um QR ECC assinado.";
         }
+
+        addToHistory(result);
       }
 
       function resetScanner() {
@@ -618,95 +800,115 @@
         startScanner();
       }
 
-      let codeReader = null;
+      // Canvas oculto usado para extrair frames do vídeo
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      let activeStream = null;
+      let scanLoopId = null;
       let lastScanned = "";
+      let scanning = false;
 
       async function startScanner() {
-        try {
-          if (typeof ZXing !== "undefined") {
-            codeReader = new ZXing.BrowserQRCodeReader();
-            const devices =
-              await ZXing.BrowserCodeReader.listVideoInputDevices();
-            const deviceId =
-              devices.length > 1 ? devices[1].deviceId : devices[0]?.deviceId;
-            codeReader.decodeFromVideoDevice(
-              deviceId,
-              "video",
-              async (result, err) => {
-                if (result && result.text !== lastScanned) {
-                  lastScanned = result.text;
-                  codeReader.reset();
-                  const r = await verifyPayload(result.text);
-                  showResult(r);
-                }
-              },
-            );
-          } else {
-            await startNativeScanner();
-          }
-        } catch (e) {
-          await startNativeScanner();
-        }
-      }
-
-      async function startNativeScanner() {
         const video = document.getElementById("video");
+        lastScanned = "";
+        scanning = true;
+
+        // Para stream anterior se existir
+        if (activeStream) {
+          activeStream.getTracks().forEach((t) => t.stop());
+          activeStream = null;
+        }
+
         try {
+          // Solicita câmera traseira — no iPhone isso abre a câmera correta
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: "environment",
+              facingMode: { ideal: "environment" },
               width: { ideal: 1280 },
               height: { ideal: 720 },
             },
+            audio: false,
           });
+
+          activeStream = stream;
           video.srcObject = stream;
-          if ("BarcodeDetector" in window) {
-            const detector = new BarcodeDetector({ formats: ["qr_code"] });
-            const scan = async () => {
-              if (
-                document.getElementById("scanner-screen").style.display ===
-                "none"
-              )
-                return;
-              try {
-                const barcodes = await detector.detect(video);
-                if (
-                  barcodes.length > 0 &&
-                  barcodes[0].rawValue !== lastScanned
-                ) {
-                  lastScanned = barcodes[0].rawValue;
-                  stream.getTracks().forEach((t) => t.stop());
-                  const r = await verifyPayload(lastScanned);
-                  showResult(r);
-                  return;
-                }
-              } catch {}
-              requestAnimationFrame(scan);
-            };
-            video.addEventListener("loadeddata", scan);
-          } else {
-            showManualFallback();
-          }
+
+          // No Safari/iOS é obrigatório .play() explícito após srcObject
+          await video.play();
+
+          // Aguarda o vídeo ter dimensões reais antes de começar a ler frames
+          await new Promise((resolve) => {
+            if (video.readyState >= 2) return resolve();
+            video.addEventListener("canplay", resolve, { once: true });
+          });
+
+          scanLoop(video);
         } catch (e) {
+          console.error("Erro ao acessar câmera:", e);
           document.getElementById("scanner-screen").style.display = "none";
           document.getElementById("perm-screen").style.display = "flex";
         }
       }
 
+      function scanLoop(video) {
+        if (!scanning) return;
+
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+
+        if (w > 0 && h > 0) {
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(video, 0, 0, w, h);
+          const imageData = ctx.getImageData(0, 0, w, h);
+
+          const code = jsQR(imageData.data, w, h, {
+            inversionAttempts: "dontInvert",
+          });
+
+          if (code && code.data && code.data !== lastScanned) {
+            lastScanned = code.data;
+            scanning = false;
+
+            // Para a câmera ao detectar
+            if (activeStream) {
+              activeStream.getTracks().forEach((t) => t.stop());
+              activeStream = null;
+            }
+
+            verifyPayload(code.data).then(showResult);
+            return;
+          }
+        }
+
+        // Agenda próxima leitura (~15fps — suficiente e leve no iPhone)
+        scanLoopId = setTimeout(() => scanLoop(video), 66);
+      }
+
+      function resetScanner() {
+        if (scanLoopId) {
+          clearTimeout(scanLoopId);
+          scanLoopId = null;
+        }
+        document.getElementById("result-screen").style.display = "none";
+        document.getElementById("scanner-screen").style.display = "flex";
+        startScanner();
+      }
+
+      // Fallback manual (caso raro de browser muito antigo sem getUserMedia)
       function showManualFallback() {
         const hint = document.querySelector(".hint-text");
         hint.innerHTML = `
-    Safari não suporta leitura automática.<br>
-    <strong style="color:var(--accent2)">Use a câmera do iPhone para escanear o QR.</strong><br>
-    Cole o payload abaixo para verificar manualmente:
-    <br><br>
-    <input id="manual-input" placeholder="01|DADO|SIG"
-      style="width:100%;padding:10px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-family:monospace;font-size:12px;margin-top:8px">
-    <button onclick="manualVerify()"
-      style="margin-top:8px;width:100%;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
-      Verificar
-    </button>
-  `;
+          Cole o payload do QR abaixo para verificar manualmente:<br><br>
+          <input id="manual-input" placeholder="01|DADO|SIG"
+            style="width:100%;padding:10px;background:#111;border:1px solid #333;
+                   border-radius:8px;color:#fff;font-family:monospace;font-size:12px;margin-top:8px">
+          <button onclick="manualVerify()"
+            style="margin-top:8px;width:100%;padding:10px;background:var(--accent);
+                   border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
+            Verificar
+          </button>`;
       }
 
       async function manualVerify() {
@@ -715,6 +917,103 @@
         lastScanned = val;
         const r = await verifyPayload(val);
         showResult(r);
+      }
+
+      // ── Histórico ────────────────────────────────────────────────────
+      const scanHistory = [];
+
+      function addToHistory(result) {
+        const now = new Date();
+        const time = now.toTimeString().substring(0, 8);
+
+        let statusClass, icon, statusText, detail;
+        if (result.status === "valid") {
+          statusClass = "valid"; icon = "✅";
+          statusText = "ACESSO AUTORIZADO";
+          detail = result.entry.name + " — " + result.data;
+        } else if (result.status === "invalid") {
+          statusClass = "invalid"; icon = "❌";
+          statusText = "ASSINATURA INVÁLIDA";
+          detail = "ID: " + result.certId + " — " + (result.data || "");
+        } else if (result.status === "unknown") {
+          statusClass = "warn"; icon = "⚠️";
+          statusText = "EMISSOR DESCONHECIDO";
+          detail = "ID '" + result.certId + "' fora do TrustStore";
+        } else {
+          statusClass = "warn"; icon = "⚠️";
+          statusText = "QR INVÁLIDO";
+          detail = "Formato não reconhecido";
+        }
+
+        scanHistory.unshift({ statusClass, icon, statusText, detail, time, result });
+
+        // Atualiza contador e mostra tab bar
+        document.getElementById("hist-count").textContent = scanHistory.length;
+        document.getElementById("tab-bar").style.display = "flex";
+
+        renderHistory();
+      }
+
+      function renderHistory() {
+        const list = document.getElementById("history-list");
+        if (scanHistory.length === 0) {
+          list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">📋</div><span>Nenhum scan realizado</span></div>';
+          return;
+        }
+        list.innerHTML = scanHistory.map((item, i) => `
+          <div class="history-item" onclick="showHistoryDetail(${i})">
+            <div class="history-badge ${item.statusClass}">${item.icon}</div>
+            <div class="history-info">
+              <div class="history-status ${item.statusClass}">${item.statusText}</div>
+              <div class="history-detail">${item.detail}</div>
+            </div>
+            <div class="history-time">${item.time}</div>
+          </div>
+        `).join("");
+      }
+
+      function showHistoryDetail(i) {
+        const item = scanHistory[i];
+        showTab("scan");
+        document.getElementById("scanner-screen").style.display = "none";
+        document.getElementById("result-screen").style.display = "flex";
+        showResult(item.result);
+      }
+
+      function clearHistory() {
+        scanHistory.length = 0;
+        document.getElementById("hist-count").textContent = "0";
+        document.getElementById("tab-bar").style.display = "none";
+        renderHistory();
+        showTab("scan");
+      }
+
+      function showTab(tab) {
+        const scannerScreen = document.getElementById("scanner-screen");
+        const resultScreen = document.getElementById("result-screen");
+        const historyScreen = document.getElementById("history-screen");
+        const tabScan = document.getElementById("tab-scan");
+        const tabHist = document.getElementById("tab-hist");
+
+        if (tab === "scan") {
+          historyScreen.style.display = "none";
+          tabHist.classList.remove("active");
+          tabScan.classList.add("active");
+          // Mostra scanner ou resultado, dependendo do estado atual
+          if (resultScreen.style.display === "flex") {
+            resultScreen.style.display = "flex";
+            scannerScreen.style.display = "none";
+          } else {
+            scannerScreen.style.display = "flex";
+            resultScreen.style.display = "none";
+          }
+        } else {
+          scannerScreen.style.display = "none";
+          resultScreen.style.display = "none";
+          historyScreen.style.display = "flex";
+          tabHist.classList.add("active");
+          tabScan.classList.remove("active");
+        }
       }
 
       startScanner();

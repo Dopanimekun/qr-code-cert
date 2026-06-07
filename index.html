@@ -22,9 +22,9 @@
         --green-dim: #00c832;
         --green-glow: rgba(0, 255, 65, 0.15);
         --green-glow-strong: rgba(0, 255, 65, 0.35);
-        --bg: #f2eded;
-        --bg2: #020f02;
-        --panel: #f2eded;
+        --bg: #ffffff;
+        --bg2: #ffffff;
+        --panel: #ffffff;
         --panel2: #071007;
         --border: #0a2a0a;
         --border-bright: #1a4a1a;
@@ -1058,8 +1058,10 @@
                 placeholder="DADOS A ASSINAR"
                 spellcheck="false"
                 autocomplete="off"
+                oninput="setInputError('')"
               />
             </div>
+            <div id="inputError" style="display:none;color:var(--red);font-family:var(--mono);font-size:11px;margin-top:6px;letter-spacing:0.05em;"></div>
           </div>
 
           <button class="btn-generate" id="btnGenerate" onclick="gerarQRCode()">
@@ -1225,8 +1227,10 @@
                 placeholder="DADOS A ASSINAR"
                 spellcheck="false"
                 autocomplete="off"
+                oninput="setInputError2('')"
               />
             </div>
+            <div id="inputError2" style="display:none;color:var(--red);font-family:var(--mono);font-size:11px;margin-top:6px;letter-spacing:0.05em;"></div>
           </div>
           <button
             class="btn-generate"
@@ -1374,8 +1378,10 @@
                 placeholder="DADOS A ASSINAR"
                 spellcheck="false"
                 autocomplete="off"
+                oninput="setInputError3('')"
               />
             </div>
+            <div id="inputError3" style="display:none;color:var(--red);font-family:var(--mono);font-size:11px;margin-top:6px;letter-spacing:0.05em;"></div>
           </div>
           <button
             class="btn-generate"
@@ -1585,10 +1591,29 @@
       }
 
       // ── Generate QR ────────────────────────────────────────────────────
+      function setInputError(msg) {
+        const el = document.getElementById("inputError");
+        if (!el) return;
+        if (msg) {
+          el.textContent = "⚠ " + msg;
+          el.style.display = "block";
+        } else {
+          el.textContent = "";
+          el.style.display = "none";
+        }
+      }
+
       function gerarQRCode() {
         const dado = document.getElementById("dataInput").value.trim();
+        setInputError("");
         if (!dado) {
+          setInputError("PAYLOAD VAZIO — insira os dados a assinar");
           setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        if (dado.includes("|")) {
+          setInputError("O dado não pode conter o caractere pipe ( | )");
+          setStatus("ERRO: DADO NAO PODE CONTER O CARACTERE PIPE ( | )", "error");
           return;
         }
 
@@ -1681,10 +1706,24 @@
         setStatus("CERT " + id + " ADULTERADO SELECIONADO", "error");
       }
 
+      function setInputError2(msg) {
+        const el = document.getElementById("inputError2");
+        if (!el) return;
+        if (msg) { el.textContent = "⚠ " + msg; el.style.display = "block"; }
+        else { el.textContent = ""; el.style.display = "none"; }
+      }
+
       function gerarQRInvalidKey() {
         const dado = document.getElementById("p2-dataInput").value.trim();
+        setInputError2("");
         if (!dado) {
+          setInputError2("PAYLOAD VAZIO — insira os dados a assinar");
           setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        if (dado.includes("|")) {
+          setInputError2("O dado não pode conter o caractere pipe ( | )");
+          setStatus("ERRO: DADO NAO PODE CONTER O CARACTERE PIPE ( | )", "error");
           return;
         }
         const btn = document.getElementById("p2-btnGenerate");
@@ -1754,10 +1793,24 @@
         setStatus("CERT DESCONHECIDO " + id + " SELECIONADO", "warn");
       }
 
+      function setInputError3(msg) {
+        const el = document.getElementById("inputError3");
+        if (!el) return;
+        if (msg) { el.textContent = "⚠ " + msg; el.style.display = "block"; }
+        else { el.textContent = ""; el.style.display = "none"; }
+      }
+
       function gerarQRUnknownCert() {
         const dado = document.getElementById("p3-dataInput").value.trim();
+        setInputError3("");
         if (!dado) {
+          setInputError3("PAYLOAD VAZIO — insira os dados a assinar");
           setStatus("ERRO: PAYLOAD VAZIO", "error");
+          return;
+        }
+        if (dado.includes("|")) {
+          setInputError3("O dado não pode conter o caractere pipe ( | )");
+          setStatus("ERRO: DADO NAO PODE CONTER O CARACTERE PIPE ( | )", "error");
           return;
         }
         const btn = document.getElementById("p3-btnGenerate");
