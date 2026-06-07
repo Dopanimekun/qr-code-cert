@@ -13,6 +13,8 @@ Este repositório contém uma **Prova de Conceito (PoC)** desenvolvida para um *
 
 O projeto também conta com um aplicativo validador construído como **PWA (Progressive Web App)**, projetado para oferecer a máxima portabilidade entre diferentes sistemas e dispositivos móveis.
 
+O aplicativo se encontra neste [repositório](https://github.com/joao730/qr-verifier-android).
+
 ---
 
 ## ⚠️ Aviso Importante
