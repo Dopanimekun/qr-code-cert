@@ -50,7 +50,7 @@ O projeto também conta com um aplicativo validador construído como **PWA (Prog
 
 1. Faça o clone do repositório em sua máquina:
 ```bash
-git clone [https://github.com/Dopanimekun/qr-code-cert.git]
+git clone https://github.com/Dopanimekun/qr-code-cert.git
 ```
 2. Acesse o diretório do projeto:   
 ```bash
@@ -61,8 +61,13 @@ cd qr-code-cert
     - Abra o arquivo `index.html` para acessar o gerador de QR Codes.
         
     - Abra o arquivo `verificador.html` para testar o sistema de leitura (ideal testar com câmera em dispositivos móveis).
-        
+
+## Github pages
+
+O projeto também está disponível via github pages para experimentação:
+- [Emissor](https://dopanimekun.github.io/qr-code-cert/)
+- [Verificador PWA](https://dopanimekun.github.io/qr-code-cert/verificador.html)
 
 ## 📄 Licença
 
-Este projeto está sob a licença **GPL-3.0**. Veja o arquivo [LICENSE](https://www.google.com/search?q=LICENSE) para mais detalhes.
+Este projeto está sob a licença **GPL-3.0**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
